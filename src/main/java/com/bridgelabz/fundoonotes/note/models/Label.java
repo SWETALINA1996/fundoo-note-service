@@ -1,5 +1,7 @@
 package com.bridgelabz.fundoonotes.note.models;
 
+import java.util.Date;
+
 import org.springframework.data.annotation.Id;
 //import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.elasticsearch.annotations.Document;
@@ -14,6 +16,16 @@ public class Label {
 	private String labelName;
 	
 	private String userId;
+	
+	private Date createdAt;
+
+	public Date getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Date createdAt) {
+		this.createdAt = createdAt;
+	}
 
 	public String getLabelId() {
 		return labelId;

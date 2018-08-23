@@ -26,7 +26,6 @@ import com.bridgelabz.fundoonotes.note.exceptions.UserNotFoundException;
 import com.bridgelabz.fundoonotes.note.models.LabelDTO;
 import com.bridgelabz.fundoonotes.note.models.LabelViewDTO;
 import com.bridgelabz.fundoonotes.note.models.Response;
-import com.bridgelabz.fundoonotes.note.models.ViewNoteDTO;
 import com.bridgelabz.fundoonotes.note.services.LabelService;
 
 @RestController

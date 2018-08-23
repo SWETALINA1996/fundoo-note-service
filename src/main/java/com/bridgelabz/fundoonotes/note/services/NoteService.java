@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.bridgelabz.fundoonotes.note.exceptions.CreationException;
 import com.bridgelabz.fundoonotes.note.exceptions.DateNotFoundException;
+import com.bridgelabz.fundoonotes.note.exceptions.LabelNotfoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.LinkNotFoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.NoteNotFoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.NoteNotTrashedException;
@@ -33,8 +34,9 @@ public interface NoteService {
 	 * @throws NoteNotFoundException
 	 * @throws UserNotFoundException
 	 * @throws UnAuthorisedAccess 
+	 * @throws LinkNotFoundException 
 	 */
-	public void updateNote(UpdateNoteDTO updateNote , String userID) throws NoteNotFoundException, UserNotFoundException, UnAuthorisedAccess;
+	public void updateNote(UpdateNoteDTO updateNote , String userID) throws NoteNotFoundException, UserNotFoundException, UnAuthorisedAccess, LinkNotFoundException;
 	
 	/**
 	 * @param noteId
@@ -74,7 +76,7 @@ public interface NoteService {
 	 * @return
 	 * @throws UserNotFoundException
 	 */
-	public List<Note> readNotes(String token) throws UserNotFoundException;
+	public List<Note> readNotes(String userId , String sortOrder) throws UserNotFoundException;
 	
 	/**
 	 * @param noteId
@@ -166,5 +168,8 @@ public interface NoteService {
 	 * @throws NoteNotFoundException
 	 */
 	public List<ViewNoteDTO> sortByDate(String userId , String sortOrder) throws NoteNotFoundException;
+
+	public List<Note> readNotesByLabelId(String userId , String labelId) throws LabelNotfoundException, UnAuthorisedAccess;
+
 }
 	

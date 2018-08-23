@@ -91,4 +91,12 @@ public LabelViewDTO createLabel(LabelDTO labeldto , String userId) throws Creati
 	 * @throws NoteNotFoundException 
 	 */
 	public List<LabelDTO> sortByTitle(String userId , String sortOrder) throws NoteNotFoundException;
+
+	/**
+	 * @param userId
+	 * @param sortOrder
+	 * @return
+	 * @throws NoteNotFoundException
+	 */
+	public List<LabelDTO> sortByDate(String userId, String sortOrder) throws NoteNotFoundException;
 }

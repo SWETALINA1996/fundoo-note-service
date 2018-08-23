@@ -307,17 +307,37 @@ public class LabelServiceImpl implements LabelService {
 		
 		List<LabelDTO> listOfLabels = labelRepo.findAllByUserId(userId);
 		if (listOfLabels.isEmpty()) {
-			throw new NoteNotFoundException("No note present");
+			throw new NoteNotFoundException("No label present");
 		}
 		if (sortOrder.equalsIgnoreCase("descending")) {
 			List<LabelDTO> labelList = listOfLabels.stream().sorted(Comparator.comparing(LabelDTO::getLabelName))
-					.map(filterStream -> modelMapper.map(filterStream, LabelDTO.class)).collect(Collectors.toList());
+					.collect(Collectors.toList());
 			Collections.reverse(labelList);
 			return labelList;
 		}
 		
 		List<LabelDTO> labelList = listOfLabels.stream().sorted(Comparator.comparing(LabelDTO::getLabelName))
 				.map(filterStream -> modelMapper.map(filterStream, LabelDTO.class)).collect(Collectors.toList());
+		
+		return labelList;
+	}
+	
+	@Override
+	public List<LabelDTO> sortByDate(String userId, String sortOrder) throws NoteNotFoundException {
+		
+		List<LabelDTO> listOfLabels = labelRepo.findAllByUserId(userId);
+		if (listOfLabels.isEmpty()) {
+			throw new NoteNotFoundException("No label present");
+		}
+		if (sortOrder.equalsIgnoreCase("descending")) {
+			List<LabelDTO> labelList = listOfLabels.stream().sorted(Comparator.comparing(LabelDTO::getCreatedAt))
+					.map(filterStream -> modelMapper.map(filterStream, LabelDTO.class)).collect(Collectors.toList());
+			Collections.reverse(labelList);
+			return labelList;
+		}
+		
+		List<LabelDTO> labelList = listOfLabels.stream().sorted(Comparator.comparing(LabelDTO::getLabelName))
+				.collect(Collectors.toList());
 		
 		return labelList;
 	}

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.bridgelabz.fundoonotes.note.exceptions.CreationException;
 import com.bridgelabz.fundoonotes.note.exceptions.DateNotFoundException;
+import com.bridgelabz.fundoonotes.note.exceptions.LabelNotfoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.LinkNotFoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.NoteNotFoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.NoteNotTrashedException;
@@ -64,10 +65,11 @@ public class NoteController {
 	 * @throws NoteNotFoundException
 	 * @throws UserNotFoundException
 	 * @throws UnAuthorisedAccess 
+	 * @throws LinkNotFoundException 
 	 *************************************************************************************************************************************************************/
 	
 	@RequestMapping(value = "/update-note", method = RequestMethod.PUT)
-	public ResponseEntity<Response> update(@RequestBody UpdateNoteDTO updateNote , HttpServletRequest req) throws NoteNotFoundException, UserNotFoundException, UnAuthorisedAccess{
+	public ResponseEntity<Response> update(@RequestBody UpdateNoteDTO updateNote , HttpServletRequest req) throws NoteNotFoundException, UserNotFoundException, UnAuthorisedAccess, LinkNotFoundException{
 		
 		String userId = req.getHeader("userId");
 		noteService.updateNote(updateNote, userId);
@@ -163,10 +165,10 @@ public class NoteController {
 	 * @throws UserNotFoundException
 	 **************************************************************************************************************/
 	@RequestMapping(value = "/get-all-notes", method = RequestMethod.GET)
-	public ResponseEntity<List<Note>> viewAll( HttpServletRequest req) throws UserNotFoundException{
+	public ResponseEntity<List<Note>> viewAll( HttpServletRequest req , @RequestParam(required = false) String sortOrder) throws UserNotFoundException{
 		
 		String userId = req.getHeader("userId");
-		List<Note> viewNote = noteService.readNotes(userId);
+		List<Note> viewNote = noteService.readNotes(userId , sortOrder);
 		System.out.println(viewNote);
 		return new ResponseEntity<>(viewNote, HttpStatus.OK);
 	}
@@ -321,12 +323,22 @@ public class NoteController {
 	 * @throws NoteNotFoundException
 	 */
 	@GetMapping(value = "/sort-notes-by-date")
-	public ResponseEntity<List<ViewNoteDTO>> sortByDate(HttpServletRequest req , @RequestParam String sortOrder) throws NoteNotFoundException{
+	public ResponseEntity<List<ViewNoteDTO>> sortByDate(HttpServletRequest req , @RequestParam(required=false) String sortOrder) throws NoteNotFoundException{
 		
 		String userId = req.getHeader("userId");
 		List<ViewNoteDTO> sortedNote = noteService.sortByDate(userId , sortOrder);
 		
 		return new ResponseEntity<>(sortedNote , HttpStatus.OK);
 	}
+	
+	@GetMapping(value = "/get-notes-by-LabelId/{labelId}")
+	public ResponseEntity<List<Note>> viewNotesByLabelId( HttpServletRequest req , @PathVariable String labelId ) throws UserNotFoundException, LabelNotfoundException, UnAuthorisedAccess{
+		
+		String userId = req.getHeader("userId");
+		List<Note> viewNote = noteService.readNotesByLabelId(userId , labelId);
+		
+		return new ResponseEntity<>(viewNote, HttpStatus.OK);
+	}
+	
 	
 }

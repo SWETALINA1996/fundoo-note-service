@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import com.bridgelabz.fundoonotes.note.exceptions.CreationException;
 import com.bridgelabz.fundoonotes.note.exceptions.DateNotFoundException;
+import com.bridgelabz.fundoonotes.note.exceptions.LabelNotfoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.LinkNotFoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.NoteNotFoundException;
 import com.bridgelabz.fundoonotes.note.exceptions.NoteNotTrashedException;
@@ -31,7 +32,6 @@ import com.bridgelabz.fundoonotes.note.models.UpdateNoteDTO;
 import com.bridgelabz.fundoonotes.note.models.UrlMetaInfo;
 import com.bridgelabz.fundoonotes.note.models.ViewNoteDTO;
 import com.bridgelabz.fundoonotes.note.repositories.LabelRepo;
-import com.bridgelabz.fundoonotes.note.repositories.LabelRepository;
 import com.bridgelabz.fundoonotes.note.repositories.NoteRepo;
 import com.bridgelabz.fundoonotes.note.repositories.NoteRepository;
 import com.bridgelabz.fundoonotes.note.utility.LinkInfoProvider;
@@ -46,9 +46,7 @@ public class NoteServiceImpl implements NoteService {
 	@Autowired
 	private NoteRepo elasticNoteRepo;
 
-	@Autowired
-	private LabelRepository labelRepository;
-
+	
 	@Autowired
 	private LabelRepo elasticLabelRepo;
 
@@ -56,7 +54,7 @@ public class NoteServiceImpl implements NoteService {
 	private ModelMapper modelMapper;
 
 	@Autowired
-	LinkInfoProvider linkInfo;
+	LinkInfoProvider linkInfoProvider;
 
 	/***********************************************
 	 * create
@@ -86,29 +84,21 @@ public class NoteServiceImpl implements NoteService {
 		if (createNote.getReminder() != null) {
 			note.setReminder(createNote.getReminder());
 		}
-		/*
-		 * if(createNote.getLabelId() != null) { List<LabelDTO> labelList = new
-		 * ArrayList<>(); labelList.addAll(elasticLabelRepo.findAllByUserId(userId));
-		 * if(labelList.contains(createNote.getLabelId())) {
-		 * note.setLabelList(labelList); } }
-		 */
+		
 		if (createNote.getLabelId() != null) {
 			Optional<Label> optionalLabel = elasticLabelRepo.findByLabelIdAndUserId(createNote.getLabelId(), userId);
 			if (optionalLabel.isPresent()) {
 				LabelDTO labelDto = new LabelDTO();
 				labelDto.setLabelId(optionalLabel.get().getLabelId());
 				labelDto.setLabelName(optionalLabel.get().getLabelName());
-				/*
-				 * List<LabelDTO> labelList = new ArrayList<LabelDTO>();
-				 * labelList.add(labelDto);
-				 */
+				
 				List<LabelDTO> labelList = Stream.concat(note.getLabelList().stream(), Stream.of(labelDto))
 						.collect(Collectors.toList());
 				note.setLabelList(labelList);
 			}
 		}
 
-		List<UrlMetaInfo> urlList = linkInfo.getDescription(createNote.getDescription());
+		List<UrlMetaInfo> urlList = linkInfoProvider.getDescription(createNote.getDescription());
 		note.setUrlList(urlList);
 
 		noteRepository.save(note);
@@ -125,10 +115,11 @@ public class NoteServiceImpl implements NoteService {
 	 * update
 	 * 
 	 * @throws UnAuthorisedAccess
+	 * @throws LinkNotFoundException 
 	 **********************************************************************************/
 	@Override
 	public void updateNote(UpdateNoteDTO updateNote, String userId)
-			throws NoteNotFoundException, UserNotFoundException, UnAuthorisedAccess {
+			throws NoteNotFoundException, UserNotFoundException, UnAuthorisedAccess, LinkNotFoundException {
 
 		Optional<Note> optionalNote = elasticNoteRepo.findById(updateNote.getId());
 		if (!optionalNote.isPresent()) {
@@ -148,11 +139,13 @@ public class NoteServiceImpl implements NoteService {
 		Date updatedDate = new Date();
 		updateNote.setUpdatedDate(updatedDate);
 
-		if (!(updateNote.getTitle() == null)) {
+		if (updateNote.getTitle() != null) {
 			note.setTitle(updateNote.getTitle());
 		}
-		if (!(updateNote.getDescription() == null)) {
+		if (updateNote.getDescription() != null) {
 			note.setDescription(updateNote.getDescription());
+			List<UrlMetaInfo> urlList = linkInfoProvider.getDescription(updateNote.getDescription());
+			note.setUrlList(urlList);
 		}
 		note.setUpdatedAt(updateNote.getUpdatedDate());
 
@@ -239,7 +232,7 @@ public class NoteServiceImpl implements NoteService {
 	 * read
 	 *****************************************************************************/
 	@Override
-	public List<Note> readNotes(String userId) throws UserNotFoundException {
+	public List<Note> readNotes(String userId , String sortType) throws UserNotFoundException {
 
 		List<Note> notes = elasticNoteRepo.findAllByUserId(userId);
 		List<Note> noteList = new ArrayList<Note>();
@@ -307,7 +300,7 @@ public class NoteServiceImpl implements NoteService {
 
 		Note note = optionalNote.get();
 
-		if (pin) {
+		if(pin){
 			note.setPin(true);
 			if (note.isArchive())
 				note.setArchive(false);
@@ -379,18 +372,15 @@ public class NoteServiceImpl implements NoteService {
 	/***********************************************************************sort-notes-by-title**********************************************************************/
 	@Override
 	public List<ViewNoteDTO> sortByTitle(String userId, String sortOrder) throws NoteNotFoundException {
-/*
-		if(sortOrder == null) {
-			
-		}*/
+
 		List<Note> listOfNotes = elasticNoteRepo.findAllByUserId(userId);
 		if (listOfNotes.isEmpty()) {
 			throw new NoteNotFoundException("No note present");
 		}
 		if (sortOrder.equalsIgnoreCase("descending")) {
-			List<ViewNoteDTO> noteList = listOfNotes.stream().sorted(Comparator.comparing(Note::getTitle))
+			List<ViewNoteDTO> noteList = listOfNotes.stream().sorted((n1, n2) -> n1.getTitle().compareTo(n2.getTitle()))
 					.map(filterStream -> modelMapper.map(filterStream, ViewNoteDTO.class)).collect(Collectors.toList());
-			Collections.reverse(noteList);
+			//Collections.reverse(noteList);
 			return noteList;
 		}
 		
@@ -419,6 +409,29 @@ public class NoteServiceImpl implements NoteService {
 		
 		return noteList;
 	}
+	@Override
+	public List<Note> readNotesByLabelId(String userId, String labelId) throws LabelNotfoundException, UnAuthorisedAccess{
+		
+		Optional<Label> optionalLabel = elasticLabelRepo.findById(labelId);
+		if(!optionalLabel.isPresent()) {
+			throw new LabelNotfoundException("label not found");
+		}
+		if(!userId.equals(optionalLabel.get().getUserId())) {
+			throw new UnAuthorisedAccess("User doenot have the label");
+		}
+		List<Note> notes = elasticNoteRepo.findAllByUserId(userId);
+		/*Optional<Note> objectNote=elasticNoteRepo.findById(userId);
+		List<LabelDTO> list=objectNote.get().getLabelList();*/
+		List<Note> noteList = new ArrayList<Note>();
+		noteList=notes.stream().filter(str->str.equals(labelId)).collect(Collectors.toList());
+		/*for (Note note : notes) {
+			if (labelId.equals())
+				noteList.add(note);
+		}*/
+
+		return noteList;
+		
+	}
 	/*********************************************************************************************************************************
 	 * @param noteId
 	 * @param token
@@ -446,6 +459,5 @@ public class NoteServiceImpl implements NoteService {
 		return optionalNote;
 	}
 
-	
 
 }
